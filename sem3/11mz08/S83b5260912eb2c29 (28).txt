@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int
+main(int argc, char **argv) {
+    int n;
+    int ret_val = 0;
+
+    while (scanf("%d", &n) == 1) {
+        pid_t pid = fork();
+        if (pid == -1) {
+            printf("-1\n");
+            fflush(stdout);
+            return ret_val;
+        } else if (pid) { // Parent
+            int ret_code;
+            wait(&ret_code);
+            if (ret_code) {
+                return ret_val;
+            }
+            printf("%d\n", n);
+            fflush(stdout);
+            return 0;
+        } else { // Child
+            ret_val = 1;
+        }
+    }
+
+
+    return 0;
+}

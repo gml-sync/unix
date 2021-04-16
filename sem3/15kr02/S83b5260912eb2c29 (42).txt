@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <limits.h>
+#include <string.h>
+
+enum { ARG_LEN = 10000 };
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main(int argc, char **argv) {
+    int arg = 1;
+    if (arg >= argc) {
+        return 0;
+    }
+    char *sep = argv[arg++];
+    
+    while(arg < argc) {
+        // Launch
+        char *args[ARG_LEN];
+        char *execname = argv[arg];
+        int idx = 0;
+        
+        while (arg < argc && strcmp(argv[arg], sep) != 0) {
+            args[idx] = argv[arg];
+            idx++;
+            arg++;
+        }
+        args[idx] = NULL;
+        
+        //printf("EXEC %s ", execname);
+        /*int i = 0;
+        while (args[i] != NULL) {
+            printf("%s ", args[i]);
+            i++;
+        }
+        printf("\n");*/
+        
+        pid_t pid = fork();
+        die(pid == -1);
+        if (pid == 0) { // Child
+            execvp(execname, args);
+            return 1;
+        }
+        
+        int ret;
+        die(waitpid(pid, &ret, 0) == -1);
+        if (!(WIFEXITED(ret) && WEXITSTATUS(ret) == 0) || WIFSIGNALED(ret)) {
+            return 1;
+        }
+        
+        
+        if (arg < argc) {
+            arg++;
+        }
+    }
+    
+    return 0;
+}

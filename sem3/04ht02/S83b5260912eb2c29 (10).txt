@@ -1,0 +1,17 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int
+main(int argc, char **argv) {
+    long long int pos = 0, neg = 0;
+    for (int i = 1; i < argc; i++) {
+        int r = atoi(argv[i]);
+        if (r > 0) {
+            pos += r;
+        } else {
+            neg += r;
+        }
+    }
+    printf("%lld\n%lld\n", pos, neg);
+    return 0;
+}

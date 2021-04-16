@@ -1,0 +1,114 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <limits.h>
+
+enum { HUMAN_BASE = 10 };
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int
+main(int argc, char **argv) {
+    int arg_idx = 1;
+    int n = strtol(argv[arg_idx++], NULL, HUMAN_BASE);
+    int good_cnt = 0;
+    int i = 0;
+    for (; i < n && i < argc - 2; i++) {
+        char execname[PATH_MAX * 10 + 1];
+        int fd = open(argv[arg_idx++], O_RDONLY);
+        die(fd < 0);
+        read(fd, execname, sizeof(execname));
+        int j = 0;
+        for (; j < PATH_MAX + 1 && execname[j] != '\n'; j++) {
+            ;
+        }
+        die(j == PATH_MAX);
+        execname[j] = '\0';
+        
+        //printf("Exec %s\n", execname);
+        pid_t pid = fork();
+        if (pid == 0) {
+            execlp(execname, execname, NULL);
+            return 42;
+        } else if (pid == -1) {
+            break;
+        }
+        close(fd);
+        //printf("%s\n", execname);
+    }
+    
+    int res;
+    int num;
+    while ((num = wait(&res)) != 0 && num != -1) {
+        //printf("Wait... %d\n", num);
+        if (WIFEXITED(res) && WEXITSTATUS(res) == 0) {
+            good_cnt++;
+        }
+    }
+    
+    for (; i < argc - 2; i++) {
+        char execname[PATH_MAX * 10 + 1];
+        int fd = open(argv[arg_idx++], O_RDONLY);
+        die(fd < 0);
+        read(fd, execname, sizeof(execname));
+        int j = 0;
+        for (; j < PATH_MAX + 1 && execname[j] != '\n'; j++) {
+            ;
+        }
+        die(j == PATH_MAX);
+        execname[j] = '\0';
+        
+        //printf("Exec new %s\n", execname);
+        pid_t pid = fork();
+        while (pid == -1) {
+            pid = fork();
+        }
+        if (pid == 0) {
+            execlp(execname, execname, NULL);
+            return 42;
+        }
+        
+        while ((num = wait(&res)) != 0 && num != -1) {
+            //printf("Wait... %d\n", num);
+            if (WIFEXITED(res) && WEXITSTATUS(res) == 0) {
+                good_cnt++;
+            }
+        }
+        
+        
+        //printf("%s\n", execname);
+    }
+    
+    printf("%d\n", good_cnt);
+    fflush(stdout);
+    
+    /*unsigned long count = strtoul(argv[args_idx++], NULL, HUMAN_BASE);
+    
+    sigaction(SIGINT, &(struct sigaction) { .sa_handler = add_handle, .sa_flags = SA_RESTART }, NULL);
+    sigaction(SIGQUIT, &(struct sigaction) { .sa_handler = mul_handle, .sa_flags = SA_RESTART }, NULL);
+    printf("%u\n", getpid());
+    fflush(stdout);
+    unsigned sum = 0;
+    unsigned x;
+    while (scanf("%d", &x) == 1) {
+        if (mode == ADD) {
+            sum += x;
+        } else {
+            sum *= x;
+        }
+        printf("%d\n", sum);
+        fflush(stdout);
+    }*/
+    
+    return 0;
+}
+

@@ -1,0 +1,58 @@
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
+#include <time.h>
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+enum { READ = 0, WRITE = 1 };
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int
+main(int argc, char **argv) {
+    //return !((launch(argv[PROC_A]) == 0 || launch(argv[PROC_B]) == 0) && launch(argv[PROC_C]) == 0);
+    int chan[2];
+    die(pipe(chan) == -1);
+    pid_t pid1 = fork();
+    die(pid1 == -1);
+    
+    if (pid1 == 0) {
+        die(close(chan[WRITE]) == -1);
+        pid_t pid2 = fork();
+        die(pid2 == -1);
+        
+        if (pid2 == 0) {
+            int n;
+            long long int sum = 0;
+            while (read(chan[READ], &n, sizeof(n)) == sizeof(n)) {
+                sum += n;
+            }
+            printf("%lld\n", sum);
+            die(close(chan[READ]) == -1);
+        }
+    } else {
+        die(close(chan[READ]) == -1);
+        
+        int n;
+        while (scanf("%d", &n) == 1) {
+            write(chan[WRITE], &n, sizeof(n));
+        }
+        die(close(chan[WRITE]) == -1);
+    }
+    
+    while (wait(NULL) != -1) {
+        ;
+    }
+    
+    return 0;
+}

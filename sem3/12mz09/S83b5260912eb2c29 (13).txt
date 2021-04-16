@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+enum { CHILD_EXIT = 42 };
+
+int
+main(int argc, char **argv) {
+    pid_t pid = fork();
+    int inf, ouf1, ouf2;
+    inf = -1;
+    ouf1 = -1;
+    ouf2 = -1;
+    if (!pid) {
+        int arg = 1;
+        char *name = argv[arg++];
+        inf = open(argv[arg++], O_RDONLY, 0660);
+        if (inf == -1) {
+            return CHILD_EXIT;
+        }
+        ouf1 = open(argv[arg++], O_WRONLY | O_APPEND | O_CREAT, 0660);
+        if (ouf1 == -1) {
+            return CHILD_EXIT;
+        }
+        ouf2 = open(argv[arg++], O_WRONLY | O_CREAT, 0660);
+        if (ouf2 == -1) {
+            return CHILD_EXIT;
+        }
+        int ret = dup2(inf, 0);
+        if (ret < 0) {
+            return CHILD_EXIT;
+        }
+        ret = dup2(ouf1, 1);
+        if (ret < 0) {
+            return CHILD_EXIT;
+        }
+        ret = dup2(ouf2, 2);
+        if (ret < 0) {
+            return CHILD_EXIT;
+        }
+        //printf("%s %s %s\n", argv[2], argv[3], argv[4]);
+        execlp(name, name, NULL);
+        return CHILD_EXIT;
+    }
+    if (inf >= 0) {
+        close(inf);
+    }
+    if (ouf1 >= 0) {
+        close(ouf1);
+    }
+    if (ouf2 >= 0) {
+        close(ouf2);
+    }
+    int ret;
+    wait(&ret);
+    printf("%d\n", ret);
+    return 0;
+}

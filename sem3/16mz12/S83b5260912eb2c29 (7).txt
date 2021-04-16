@@ -1,0 +1,13 @@
+#include <stdlib.h>
+#include <limits.h>
+
+STYPE bit_reverse(STYPE value) {
+    UTYPE uval = (UTYPE) value;
+    UTYPE ret = 0;
+    for (int bit = 0; bit < sizeof(UTYPE) * CHAR_BIT; bit++) {
+        ret <<= 1;
+        ret |= uval & 1;
+        uval >>= 1;
+    }
+    return (STYPE) ret;
+}

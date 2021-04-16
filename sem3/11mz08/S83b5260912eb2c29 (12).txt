@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+int terminate = 0;
+void terminate_handle(int s) {
+    terminate = 1;
+}
+
+int
+main(int argc, char **argv) {
+    int n;
+    pid_t parent = 0;
+    while (scanf("%d", &n) == 1) {
+        signal(SIGINT, terminate_handle);
+        pid_t pid = fork();
+        if (pid == -1) {
+            printf("-1\n");
+            fflush(stdout);
+            kill(parent, SIGINT);
+            return 0;
+        } else if (pid) {
+            parent = pid;
+            wait(NULL);
+            if (terminate) {
+                return 0;
+            }
+            printf("%d\n", n);
+            fflush(stdout);
+            return 0;
+        }
+    }
+    
+
+    return 0;
+}
+

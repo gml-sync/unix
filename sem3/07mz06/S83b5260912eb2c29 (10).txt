@@ -1,0 +1,30 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <unistd.h>
+#include <fcntl.h> 
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int
+main(int argc, char **argv) {
+    long long unsigned s = 0;
+    for (int i = 1; i < argc; i++) {
+        struct stat buf;
+        if (lstat(argv[i], &buf) == 0 &&
+            S_ISREG(buf.st_mode) && buf.st_nlink <= 1) {
+            s += buf.st_size;
+        }
+    }
+    printf("%llu", s);
+
+    return 0;
+}

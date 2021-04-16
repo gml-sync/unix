@@ -1,0 +1,87 @@
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
+#include <time.h>
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+enum { READ = 0, WRITE = 1 };
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int waitstatus(pid_t pid) {
+    int ret;
+    waitpid(pid, &ret, 0);
+    return !(WIFEXITED(ret) && WEXITSTATUS(ret) == 0);
+}
+
+int
+main(int argc, char **argv) {
+    long long int lim = strtoll(argv[1], NULL, 10);
+    int chan1[2];
+    int chan2[2];
+    die(pipe(chan1) == -1);
+    die(pipe(chan2) == -1);
+    
+    pid_t pid1 = fork();
+    die(pid1 == -1);
+    if (pid1 == 0) { // Process 1
+        close(chan1[READ]);
+        close(chan2[WRITE]);
+        FILE *inf = fdopen(chan2[READ], "r");
+        FILE *ouf = fdopen(chan1[WRITE], "w");
+        
+        long long int d;
+        while (fscanf(inf, "%lld", &d) == 1 && d != lim) {
+            printf("1 %lld\n", d);
+            fflush(stdout);
+            fprintf(ouf, "%lld\n", d + 1);
+            fflush(ouf);
+        }
+        fflush(stdout);
+        fflush(ouf);
+        return 0;
+    }
+    
+    pid_t pid2 = fork();
+    die(pid2 == -1);
+    if (pid2 == 0) { // Process 2
+        close(chan1[WRITE]);
+        close(chan2[READ]);
+        FILE *inf = fdopen(chan1[READ], "r");
+        FILE *ouf = fdopen(chan2[WRITE], "w");
+        
+        fprintf(ouf, "1\n");
+        fflush(ouf);
+
+        long long int d;
+        while (fscanf(inf, "%lld", &d) == 1 && d != lim) {
+            printf("2 %lld\n", d);
+            fflush(stdout);
+            fprintf(ouf, "%lld\n", d + 1);
+            fflush(ouf);
+        }
+        fclose(inf);
+        fclose(ouf);
+        return 0;
+    }
+    
+    die(close(chan2[READ]) == -1);
+    die(close(chan2[WRITE]) == -1);
+    die(close(chan1[READ]) == -1);
+    die(close(chan1[WRITE]) == -1);
+    waitstatus(pid1);
+    waitstatus(pid2);
+    printf("Done\n");
+    
+    return 0;
+}

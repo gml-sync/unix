@@ -1,0 +1,25 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int
+main(int argc, char **argv) {
+    unsigned n;
+    scanf("%u", &n);
+    for (unsigned i = 1; i < n; i++) {
+        printf("%u ", i);
+        fflush(stdout);
+        if (fork()) {
+            wait(NULL);
+            return 0;
+        }
+    }
+    printf("%u\n", n);
+    fflush(stdout);
+    
+
+    return 0;
+}
+

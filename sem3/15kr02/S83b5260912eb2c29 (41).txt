@@ -1,0 +1,78 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <limits.h>
+
+enum { FILE_A = 1, FILE_B = 2, READ = 0, WRITE = 1 };
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main(int argc, char **argv) {
+    int chan1[2];
+    die(pipe(chan1) == -1);
+    
+    pid_t pid1 = fork();
+    die(pid1 == -1);
+    if (pid1 == 0) {
+        int inf = open(argv[FILE_A], O_RDONLY);
+        dup2(inf, STDIN_FILENO);
+        unsigned sum = 0;
+        unsigned d;
+        while (scanf("%u", &d) == 1) {
+            sum += d;
+        }
+        die(write(chan1[WRITE], &sum, sizeof(sum)) < sizeof(sum));
+        
+        die(close(chan1[READ]) == -1);
+        die(close(chan1[WRITE]) == -1);
+        return 0;
+    } else {
+        die(close(chan1[WRITE]) == -1);
+    }
+    
+    int chan2[2];
+    die(pipe(chan2) == -1);
+    
+    pid_t pid2 = fork();
+    die(pid2 == -1);
+    if (pid2 == 0) {
+        int inf = open(argv[FILE_B], O_RDONLY);
+        dup2(inf, STDIN_FILENO);
+        unsigned sum = 0;
+        unsigned d;
+        while (scanf("%u", &d) == 1) {
+            sum += d;
+        }
+        die(write(chan2[WRITE], &sum, sizeof(sum)) < sizeof(sum));
+        
+        die(close(chan2[READ]) == -1);
+        die(close(chan2[WRITE]) == -1);
+        return 0;
+    } else {
+        die(close(chan2[WRITE]) == -1);
+    }
+    
+    while (wait(NULL) != -1) {
+        ;
+    }
+    
+    unsigned r1;
+    die(read(chan1[READ], &r1, sizeof(r1)) < sizeof(r1));
+    unsigned r2;
+    die(read(chan2[READ], &r2, sizeof(r2)) < sizeof(r2));
+    printf("%d\n%d\n%d\n", r2, r1, r1 + r2);
+    
+    die(close(chan1[READ]) == -1);
+    die(close(chan2[READ]) == -1);
+    
+    return 0;
+}

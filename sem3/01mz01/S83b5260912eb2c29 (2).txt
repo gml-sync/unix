@@ -1,0 +1,38 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+enum
+{
+    N = 2000
+};
+
+void
+precount_inverse(int modulo, int *inverse) {
+    int i, j;
+    for (i = 0; i < modulo; i++) {
+        for (j = 0; j < modulo; j++) {
+            if (i * j % modulo == 1) {
+                inverse[i] = j;
+            }
+        }
+    }
+}
+
+int 
+main(void) {
+    int modulo;
+    int inverse[N];
+    scanf("%d", &modulo);
+    if (modulo >= N || modulo < 1) {
+        exit(EXIT_FAILURE);
+    }
+    precount_inverse(modulo, inverse);
+    int i, j;
+    for (i = 0; i < modulo; i++) {
+        for (j = 1; j < modulo; j++) {
+            printf("%d ", i * inverse[j] % modulo);
+        }
+        printf("\n");
+    }
+    return 0;
+}

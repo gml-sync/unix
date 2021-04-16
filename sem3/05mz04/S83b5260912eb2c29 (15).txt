@@ -1,0 +1,19 @@
+#include <stdio.h>
+#include <inttypes.h>
+
+int
+main(void) {
+    int w;
+    int32_t n;
+    scanf("%" SCNo32 "%o", &n, &w);
+    int32_t h = 1 << (n - 1);
+    n = 1 << n;
+    for (int32_t i = 0; i < n; i++) {
+        int32_t j = i;
+        if (i >= h) {
+            j = h - i;
+        }
+        printf("|%*" PRIo32 "|%*" PRIu32 "|%*" PRId32 "|\n", w, i, w, i, w, j);
+    }
+    return 0;
+}

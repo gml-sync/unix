@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <limits.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+
+volatile int cnt = 0;
+
+void usr1_handle(int s) {
+    cnt += 5;
+    printf("%d %d\n", s, cnt);
+    fflush(stdout);
+    if (cnt < 0) {
+        exit(EXIT_SUCCESS);
+    }
+}
+
+void usr2_handle(int s) {
+    cnt -= 4;
+    printf("%d %d\n", s, cnt);
+    fflush(stdout);
+    if (cnt < 0) {
+        exit(EXIT_SUCCESS);
+    }
+}
+
+
+int main(int argc, char **argv) {
+    sigset_t blocker;
+    die(sigemptyset(&blocker) == -1);
+    die(sigaddset(&blocker, SIGUSR2) == -1);
+    sigaction(SIGUSR1, &(struct sigaction) {
+            .sa_handler = usr1_handle,
+            .sa_mask = blocker,
+            .sa_flags = SA_RESTART}, NULL);
+    die(sigemptyset(&blocker) == -1);
+    die(sigaddset(&blocker, SIGUSR1) == -1);
+    sigaction(SIGUSR2, &(struct sigaction) {
+            .sa_handler = usr2_handle,
+            .sa_mask = blocker,
+            .sa_flags = SA_RESTART}, NULL);
+    printf("%d\n", getpid());
+    fflush(stdout);
+    while (1) {
+        
+        pause();
+    }
+    
+    return 0;
+}

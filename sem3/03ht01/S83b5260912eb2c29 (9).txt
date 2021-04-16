@@ -1,0 +1,95 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <limits.h>
+#include <errno.h>
+
+enum
+{
+    INIT_SIZE = 2,
+    HUMAN_BASE = 10,
+    INVERT = -1,
+    SPACE_MAGIC = 0x0bad1dea,
+    NAN_MAGIC = 0xbedabeda
+};
+
+
+
+char *getline2(FILE *f);
+
+void
+skip_space(char **cstr) {
+    while (**cstr != '\0' && isspace((unsigned char)**cstr)) {
+        (*cstr)++;
+    }
+}
+
+int
+is_number(const char *cstr) {
+    unsigned int idx = 0;
+    while (cstr[idx] != '\0') {
+        char c = cstr[idx];
+        char nxt = cstr[idx + 1];
+        if (!(isspace((unsigned char)c)
+                || ('0' <= c && c <= '9')
+                || ((c == '-' || c == '+') && ('0' <= nxt && nxt <= '9')))) {
+            return 0;
+        }
+        idx++;
+    }
+    return 1;
+}
+
+int
+main(void) {
+    char *buffer, *memory_alloc;
+    int line_num = 0;
+
+    buffer = getline2(stdin);
+    memory_alloc = buffer;
+    while (buffer != NULL) {
+        unsigned int num_sum = 0;
+        unsigned long num_cnt = 0;
+        skip_space(&buffer);
+        if (*buffer == '\0') {
+            printf("%d\n", (int)(SPACE_MAGIC + line_num + 1));
+        } else {
+            if (!is_number(buffer)) {
+                printf("%d\n", (int)(NAN_MAGIC + line_num + 1));
+            } else {
+                while (*buffer != '\0') {
+                    int sign = 1;
+                    if (*buffer == '-') {
+                        sign = -1;
+                    }
+
+                    char *new_buffer;
+                    long int r = strtol(buffer, &new_buffer, HUMAN_BASE);
+                    buffer = new_buffer;
+                    if (errno == ERANGE || r > INT_MAX || r < INT_MIN) {
+                        errno = 0;
+                        num_sum += (num_cnt + 1) * sign;
+                    } else {
+                        num_sum += r;
+                    }
+
+                    num_cnt++;
+                    while (*buffer != '\0' && ('0' <= *buffer && *buffer <= '9')) {
+                        buffer++;
+                    }
+                    skip_space(&buffer);
+                }
+                printf("%d\n", num_sum);
+            }
+
+        }
+
+        free(memory_alloc);
+        line_num++;
+        buffer = getline2(stdin);
+        memory_alloc = buffer;
+    }
+
+    return 0;
+}

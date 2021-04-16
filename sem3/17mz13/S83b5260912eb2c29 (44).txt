@@ -1,0 +1,146 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <inttypes.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
+#include <linux/limits.h>
+#include <semaphore.h>
+
+
+enum { MEMSIZE = 100 };
+const char RAMDRIVE_NAME[] = "shm_object";
+const char ATOMIC_NAME[] = "/atomic1";
+
+void
+die(int condition) {
+    if (condition) {
+        printf("ERROR\n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
+}
+
+int
+main(int argc, char **argv) {
+    int arg = 1;
+    long int nproc = strtol(argv[arg++], NULL, 10);
+    key_t key  = strtol(argv[arg++], NULL, 10);
+    int maxval = (int) strtol(argv[arg++], NULL, 10);
+
+    int memid = shmget(key, MEMSIZE, 0666 | IPC_CREAT);
+    int *arr = shmat(memid, NULL, 0);
+
+    int semid = semget(key, nproc + 1, 0666 | IPC_CREAT);
+    for (int i = 0; i < nproc + 1; i++) {
+        semctl(semid, i, SETVAL, (int) 0);
+    }
+
+
+    for (int i = 0; i < nproc; i++) {
+        int pid = fork();
+        die(pid == -1);
+        if (pid == 0) { // Child with id i
+            while (1) {
+                struct sembuf ops;
+                ops.sem_num = i + 1;
+                ops.sem_flg = 0;
+                ops.sem_op = -1;
+                semop(semid, &ops, 1);
+                if (arr[1] == -1) {
+                    return 0;
+                }
+
+                int val = arr[0];
+                int sender = arr[1];
+                printf("%d %d %d\n", i + 1, val, sender);
+                fflush(stdout);
+                val++;
+                long long int idx = val;
+                idx = idx % nproc;
+                idx = (idx * idx * idx * idx) % nproc + 1;
+
+                if (val > maxval) {
+                    ops.sem_num = 0;
+                    ops.sem_flg = 0;
+                    ops.sem_op = 1;
+                    semop(semid, &ops, 1);
+                    return 0;
+                }
+                arr[0] = val;
+                arr[1] = i + 1;
+                ops.sem_num = (int) idx;
+                ops.sem_flg = 0;
+                ops.sem_op = 1;
+                semop(semid, &ops, 1);
+            }
+            return 0;
+        }
+    }
+    arr[0] = 0;
+    arr[1] = 0;
+    struct sembuf ops;
+    ops.sem_num = 1;
+    ops.sem_flg = 0;
+    ops.sem_op = 1;
+    semop(semid, &ops, 1); // Send 0 to proc #1
+
+    ops.sem_num = 0;
+    ops.sem_flg = 0;
+    ops.sem_op = -1;
+    semop(semid, &ops, 1); // Wait while my sem is 0
+    arr[1] = -1;
+    for (int i = 1; i < nproc + 1; i++) {
+        ops.sem_num = i;
+        ops.sem_flg = 0;
+        ops.sem_op = 1;
+        semop(semid, &ops, 1);
+    }
+    while (wait(NULL) != -1) {
+        ;
+    }
+
+    shmdt(arr);
+    shmctl(memid, IPC_RMID, NULL);
+    for (int i = 0; i < nproc + 1; i++) {
+        semctl(semid, 0, IPC_RMID, (int) 0);
+    }
+
+    /*int memory = shm_open(RAMDRIVE_NAME, O_CREAT | O_RDWR, 0640);
+    die(memory  == -1);
+    die(ftruncate(memory, MEMSIZE + 1) == -1);
+
+    write(memory, "092", 4);
+    lseek(memory, 0, SEEK_SET);
+    char buf[10];
+    read(memory, buf, 4);
+    printf("%s", buf);
+    fflush(stdout);
+
+    unsigned char *memarr = mmap(NULL, MEMSIZE + 1, PROT_READ | PROT_WRITE, MAP_SHARED, memory, 0);
+    die(memarr == MAP_FAILED);
+    die(munmap(memarr, MEMSIZE + 1) == -1);
+
+    die(close(memory) == -1);
+    die(shm_unlink(RAMDRIVE_NAME) == -1);
+
+
+
+    sem_t *atomic = sem_open(ATOMIC_NAME, O_CREAT, 0764, 0);
+    die(atomic == SEM_FAILED);
+    die(sem_wait(atomic) < 0); // -1; block
+    die(sem_post(atomic) < 0); // +1
+    die(sem_close(atomic) < 0);
+
+
+
+    sleep(100);*/
+    return 0;
+}

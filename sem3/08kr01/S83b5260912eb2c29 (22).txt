@@ -1,0 +1,29 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <unistd.h>
+#include <fcntl.h> 
+
+void
+die(int condition) {
+    if (condition) {
+        //printf("Exit\n");
+        //fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
+}
+
+int64_t
+extract(int64_t value, int bit, int length) {
+    unsigned long long d = value;
+    unsigned long long mask = ((((unsigned long long)1 << (length - 1)) - 1) << 1) + 1;
+
+    unsigned long long masked = (d >> bit) & mask;
+    if (masked & ((unsigned long long)1 << (length - 1))) {
+        masked |= ~mask;
+    }
+    return masked;
+}

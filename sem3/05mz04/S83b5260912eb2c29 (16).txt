@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+const char priviliges[] = "rwxrwxrwx";
+enum
+{
+    OCTAL_BASE = 8,
+    PRIV_LEN = sizeof(priviliges) - 1
+};
+
+int
+main(int argc, char **argv) {
+    for (int i = 1; i < argc; i++) {
+        unsigned num = strtol(argv[i], NULL, OCTAL_BASE);
+        unsigned int window = 1 << (PRIV_LEN - 1);
+        int j = 0;
+        while (window != 0) {
+            if (num & window) {
+                putchar(priviliges[j]);
+            } else {
+                putchar('-');
+            }
+
+            window >>= 1;
+            j++;
+        }
+        putchar('\n');
+    }
+    return 0;
+}

@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <inttypes.h>
+
+enum
+{
+    EPOCH = 1900,
+    YEAR_POS = 1,
+    DAY_POS = 2,
+    HUMAN_BASE = 10
+};
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+time_t
+readdate(FILE *fd) {
+    struct tm t = {0};
+
+    int ret = fscanf(fd, "%d/%d/%d %d:%d:%d",
+            &t.tm_year,
+            &t.tm_mon,
+            &t.tm_mday,
+            
+            &t.tm_hour,
+            &t.tm_min,
+            &t.tm_sec);
+    if (ret != 6) {
+        return -1;
+    }
+    t.tm_year -= EPOCH;
+    t.tm_mon -= 1;
+    t.tm_isdst = -1;
+    
+    return mktime(&t);
+}
+
+int
+main(int argc, char **argv) {
+    FILE *inf = fopen(argv[1], "r");
+
+    time_t t_prev = readdate(inf);
+    die(t_prev == -1);
+
+    time_t t_cur;
+    while ((t_cur = readdate(inf)) != -1) {
+        printf("%ld\n", t_cur - t_prev);
+        t_prev = t_cur;
+    }
+
+    fclose(inf);
+
+    return 0;
+}

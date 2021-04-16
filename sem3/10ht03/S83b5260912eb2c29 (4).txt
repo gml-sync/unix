@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
+#include <limits.h>
+#include <time.h>
+#include <inttypes.h>
+
+const long long int A = 1103515245;
+const long long int C = 12345;
+const long long int M = 1 << 31;
+struct RandomOperations;
+
+typedef struct RandomGenerator
+{
+    struct RandomOperations *ops;
+    long long int a, c, m;
+    int x;
+} RandomGenerator;
+
+typedef struct RandomOperations
+{
+    int (*next)(RandomGenerator*);
+    void (*destroy)(RandomGenerator*);
+} RandomOperations;
+
+int rnext(RandomGenerator *r) {
+    r->x = (r->a * r->x + r->c) % r->m;
+    return r->x;
+}
+
+void rdestroy(RandomGenerator *r) {
+    free(r);
+}
+
+const RandomOperations ops = {rnext, rdestroy};
+
+RandomGenerator *random_create(int seed) {
+    RandomGenerator *r = calloc(1, sizeof(*r));
+    r->ops = (RandomOperations*) &ops;
+    r->x = seed;
+    r->a = A;
+    r->c = C;
+    r->m = M;
+    return r;
+}

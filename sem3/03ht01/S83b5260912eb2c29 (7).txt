@@ -1,0 +1,55 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <linux/limits.h>
+
+enum
+{
+    DIGITS = 10,
+    BUFFER_ENDING = 3
+};
+
+void
+die(int condition) {
+    if (condition) {
+        for (int i = 0; i < DIGITS; i++) {
+            printf("%d 0\n", i);
+        }
+        exit(EXIT_SUCCESS);
+    }
+}
+
+int
+main(void) {
+    char buffer[PATH_MAX + BUFFER_ENDING];
+
+    char *ret = fgets(buffer, sizeof(buffer), stdin);
+    die(ret == NULL);
+
+    int i = strlen(buffer);
+    while (0 < (i - 1) && (buffer[i - 1] == '\n' || buffer[i - 1] == '\r')) {
+        i--;
+    }
+    die(i == 0);
+    buffer[i] = '\0';
+
+    FILE *inf = fopen(buffer, "r");
+    die(inf == NULL);
+
+    unsigned long long int counter[DIGITS] = {0};
+
+    int r;
+    while ((r = fread(buffer, sizeof(*buffer), sizeof(buffer), inf)) != 0) {
+        for (int i = 0; i < r; i++) {
+            if (isdigit((unsigned char)buffer[i])) {
+                counter[buffer[i] - '0']++;
+            }
+        }
+    }
+    for (int i = 0; i < DIGITS; i++) {
+        printf("%d %llu\n", i, counter[i]);
+    }
+    return 0;
+}

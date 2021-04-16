@@ -1,0 +1,55 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+long long int
+min(long long int a, long long int b) {
+    if (a < b) {
+        return a;
+    }
+    return b;
+}
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int
+main(int argc, char **argv) {
+    int inf = open(argv[1], O_RDWR);
+    die(inf < 0);
+    
+    int ret = 0;
+    int num_inf = 1;
+    size_t pos = 0;
+    long long int mn = LLONG_MAX;
+    long long int buf;
+
+    size_t i = 0;
+    while ((ret = read(inf, &buf, sizeof(buf))) == sizeof(buf)) {
+        die(ret < 0);
+        if (buf < mn || num_inf) {
+            num_inf = 0;
+            mn = buf;
+            pos = i;
+        }
+        i++;
+    }
+    
+    if (!num_inf) {
+        long long unsigned out_buf = (long long unsigned)mn;
+        out_buf = -out_buf;
+        die(lseek(inf, pos * sizeof(buf), SEEK_SET) == -1);
+        die(write(inf, &out_buf, sizeof(out_buf)) < 0);
+    }
+    die(close(inf) == -1);
+    
+    return 0;
+}

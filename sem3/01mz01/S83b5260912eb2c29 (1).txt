@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+enum
+{
+    DIGITS_START = 1,
+    DIGITS_END = 10,
+    LOWCASE_START = 11,
+    LOWCASE_END = 36,
+    UPCASE_START = 37,
+    UPCASE_END = 62,
+    BIT_INVERT = 3,
+    BIT_BLOCKED = 2,
+    ENC_AT = 0,
+    ENC_SHARP = 63
+};
+
+int
+main(void) {
+    int c;
+    while ((c = getchar()) != EOF) {
+        int code;
+        if ('0' <= c && c <= '9') {
+            code = DIGITS_START + (c - '0');
+        } else if ('a' <= c && c <= 'z') {
+            code = LOWCASE_START + (c - 'a');
+        } else if ('A' <= c && c <= 'Z') {
+            code = UPCASE_START + (c - 'A');
+        } else {
+            continue;
+        }
+
+        code ^= 1 << BIT_INVERT;
+        code &= ~(1 << BIT_BLOCKED);
+
+        if (code == ENC_AT) {
+            putchar('@');
+        } else if (code == ENC_SHARP) {
+            putchar('#');
+        } else if (DIGITS_START <= code && code <= DIGITS_END) {
+            putchar('0' + code - DIGITS_START);
+        } else if (LOWCASE_START <= code && code <= LOWCASE_END) {
+            putchar('a' + code - LOWCASE_START);
+        } else if (UPCASE_START <= code && code <= UPCASE_END) {
+            putchar('A' + code - UPCASE_START);
+        }
+    }
+    return 0;
+}

@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+enum { SIGCNT = 5 };
+
+volatile sig_atomic_t cnt = 0;
+
+void handle(int s) {
+    if (cnt < SIGCNT) {
+        printf("%d\n", cnt);
+        fflush(stdout);
+        cnt++;
+    }
+}
+
+int
+main(int argc, char **argv) {
+    sigaction(SIGHUP, &(struct sigaction) { .sa_handler = handle, .sa_flags = SA_RESTART }, NULL);
+    printf("%u\n", getpid());
+    fflush(stdout);
+    while (cnt < SIGCNT) {
+        pause();
+    }
+    
+    return 0;
+}

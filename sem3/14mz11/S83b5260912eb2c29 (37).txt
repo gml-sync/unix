@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+enum { ADD, MUL };
+
+volatile sig_atomic_t mode = ADD;
+
+void add_handle(int s) {
+    mode = ADD;
+}
+
+void mul_handle(int s) {
+    mode = MUL;
+}
+
+int
+main(void) {
+    sigaction(SIGINT, &(struct sigaction) { .sa_handler = add_handle, .sa_flags = SA_RESTART }, NULL);
+    sigaction(SIGQUIT, &(struct sigaction) { .sa_handler = mul_handle, .sa_flags = SA_RESTART }, NULL);
+    printf("%u\n", getpid());
+    fflush(stdout);
+    unsigned sum = 0;
+    unsigned x;
+    while (scanf("%d", &x) == 1) {
+        if (mode == ADD) {
+            sum += x;
+        } else {
+            sum *= x;
+        }
+        printf("%d\n", sum);
+        fflush(stdout);
+    }
+    
+    return 0;
+}
+

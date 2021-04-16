@@ -1,0 +1,31 @@
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+enum { PROC_A = 1, PROC_B, PROC_C };
+
+int
+launch(char *cmd) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp(cmd, cmd, NULL);
+        return 1;
+    } else if (pid == -1) {
+        return 1;
+    }
+    
+    int ret;
+    waitpid(pid, &ret, 0);
+    return !(WIFEXITED(ret) && WEXITSTATUS(ret) == 0);
+}
+
+int
+main(int argc, char **argv) {
+    return !((launch(argv[PROC_A]) == 0 || launch(argv[PROC_B]) == 0) && launch(argv[PROC_C]) == 0);
+}

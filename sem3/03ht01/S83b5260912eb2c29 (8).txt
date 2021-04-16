@@ -1,0 +1,46 @@
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
+enum
+{
+    INIT_SIZE = 4
+};
+
+
+char *getline2(FILE *f) {
+    size_t size = INIT_SIZE;
+    char *buffer = malloc(size * sizeof(*buffer));
+
+    int i = 0;
+    int r = fgetc(f);
+    if (r == EOF) {
+        free(buffer);
+        return NULL;
+    }
+    while (r != EOF && r != '\n') {
+        if (i >= size - INIT_SIZE) {
+            size = (size << 1) + 1;
+            char *new_buffer = realloc(buffer, size * sizeof(*buffer));
+            if (new_buffer == NULL) {
+                free(buffer);
+                return new_buffer;
+            }
+            buffer = new_buffer;
+        }
+        buffer[i] = r;
+        i++;
+
+        r = getc(f);
+    }
+
+    if (r == '\n') {
+        buffer[i] = r;
+        i++;
+    }
+    buffer[i] = '\0';
+    return buffer;
+}

@@ -1,0 +1,24 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int
+main(int argc, char **argv) {
+    if (!fork()) {
+        if (!fork()) {
+            printf("3 ");
+            fflush(stdout);
+        } else {
+            wait(NULL);
+            printf("2 ");
+            fflush(stdout);
+        }
+    } else {
+        wait(NULL);
+        printf("1\n");
+    }
+
+    return 0;
+}

@@ -1,0 +1,114 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <unistd.h>
+#include <dirent.h>
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int cmp(const void *a, const void *b) 
+{ 
+    const char **ia = (const char **)a;
+    const char **ib = (const char **)b;
+    return strcasecmp(*ia, *ib);
+} 
+
+void
+recdir(DIR *dir, char *path) {
+    struct dirent *entry = readdir(dir);
+    int flow = 0;
+    int dirsize = 1;
+    char **dirname = malloc(dirsize * sizeof(*dirname));
+
+    int path_end = strlen(path);
+    while (entry) {
+        struct stat stb;
+        int entrylen = strlen(entry->d_name);
+        int pathlen;
+        if (path[path_end - 1] == '/') {
+            strcat(path, entry->d_name);
+            pathlen = path_end + entrylen;
+        } else {
+            strcat(strcat(path, "/"), entry->d_name);
+            pathlen = path_end + 1 + entrylen;
+        }
+
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 &&
+                pathlen < PATH_MAX && lstat(path, &stb) == 0 && S_ISDIR(stb.st_mode)) {
+
+            if (flow >= dirsize) {
+                dirsize <<= 1;
+                dirname = realloc(dirname, dirsize * sizeof(*dirname));
+            }
+            dirname[flow] = malloc(strlen(entry->d_name) + 1); 
+            strcpy(dirname[flow], entry->d_name);
+            flow++;
+        }
+        path[path_end] = '\0';
+
+        entry = readdir(dir);
+    }
+    die(closedir(dir) == -1);
+
+    dirsize = flow;
+    qsort(dirname, dirsize, sizeof(*dirname), cmp);
+
+    for (flow = 0; flow < dirsize; flow++) {
+        if (path[path_end - 1] == '/') {
+            strcat(path, dirname[flow]);
+        } else {
+            strcat(strcat(path, "/"), dirname[flow]);
+        }
+
+        DIR *new_dir = opendir(path);
+        if (new_dir != NULL) {
+            printf("cd %s\n", dirname[flow]);
+            recdir(new_dir, path);
+            printf("cd ..\n");
+        }
+
+        path[path_end] = '\0';
+        free(dirname[flow]);
+    }
+    free(dirname);
+}
+
+void normalize_path(char *buf) {
+    char *last = buf;
+    while (*buf != '\0') {
+        while (*buf != '\0' && *buf != '/') {
+            *last = *buf;
+            last++;
+            buf++;
+        }
+        if (*buf == '/' ) {
+            last++;
+            while (*buf == '/') {
+                buf++;
+            }
+        }
+    }
+    *last = *buf;
+}
+
+int
+main(int argc, char **argv) {
+    DIR *dir = opendir(argv[1]);
+    char path[PATH_MAX << 1];
+    strcpy(path, argv[1]);
+    normalize_path(path);
+    if (dir != NULL) {
+        recdir(dir, path);
+    }
+
+    return 0;
+}

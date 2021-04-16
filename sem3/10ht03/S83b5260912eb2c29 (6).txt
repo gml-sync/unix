@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+enum { LOW = 0, HIGH = 100 };
+
+int
+main(int argc, char **argv) {
+    int n;
+    scanf("%d", &n);
+    int randval[HIGH];
+    int j = 0;
+    for (int i = 0; i < n; i++) {
+        int x, prob;
+        scanf("%d%d", &x, &prob);
+        int end = j + prob;
+        for (; j < end; j++) {
+            randval[j] = x;
+        }
+    }
+    int m;
+    long long int seed;
+    scanf("%d%lld", &m, &seed);
+    
+    srand(seed);
+    for (int i = 0; i < m; i++) {
+        double num = (double)rand();
+        num /= (double)RAND_MAX + 1;
+        num = (double)LOW + num * (double)(HIGH - LOW);
+        printf("%d\n", randval[(int)floor(num)]);
+    }
+    return 0;
+}

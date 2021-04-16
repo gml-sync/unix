@@ -1,0 +1,22 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+enum { HUMAN_BASE = 10 };
+
+int
+main(int argc, char **argv) {
+    int args_idx = 1;
+    unsigned long count = strtoul(argv[args_idx++], NULL, HUMAN_BASE);
+    long int low = strtol(argv[args_idx++], NULL, HUMAN_BASE);
+    long int high = strtol(argv[args_idx++], NULL, HUMAN_BASE);
+    unsigned long seed = strtoul(argv[args_idx++], NULL, HUMAN_BASE);
+    srand(seed);
+    for (int i = 0; i < count; i++) {
+        double num = (double)rand();
+        num /= (double)RAND_MAX + 1;
+        num = (double)low + num * (double)(high - low);
+        printf("%d\n", (int)floor(num));
+    }
+    return 0;
+}

@@ -1,0 +1,37 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+enum
+{
+    PROC_NUM = 3,
+    HUMAN_BASE = 10,
+    READ_BUF = 9
+};
+
+void
+die(int condition) {
+    if (condition) {
+        exit(EXIT_FAILURE);
+    }
+}
+
+int
+main(void) {
+    for (int i = 1; i <= PROC_NUM; i++) {
+        if (!fork()) {
+            char buf[READ_BUF] = {0};
+            read(STDIN_FILENO, buf, sizeof(buf) - 1);
+            long int res = strtol(buf, NULL, HUMAN_BASE);
+            printf("%d %lld\n", i, (long long int)res * res);
+            return 0;
+        }
+    }
+    while (wait(NULL) > 0) {
+        ;
+    }
+
+    return 0;
+}
